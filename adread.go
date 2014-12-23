@@ -4,8 +4,11 @@ package main
 import (
 	"apl.uw.edu/mikek/tsadc"
 	"encoding/csv"
+	"flag"
+	"fmt"
 	"gopkg.in/yaml.v2"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/signal"
 	"strconv"
@@ -77,11 +80,33 @@ func write_record(w io.Writer, t time.Time, data []float32) error {
 }
 
 func main() {
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage: %s [options] [cfgfile]\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Sample A/Ds and write to stdout\n\n")
+		flag.PrintDefaults()
+	}
+	s_interval := flag.Duration("interval", time.Second, "A/D sampling interval")
+	flag.Parse()
+	args := flag.Args()
+
+	var contents []byte
+	var err error
+
+	if len(args) >= 1 {
+		contents, err = ioutil.ReadFile(args[0])
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		contents = []byte(defcfg)
+	}
+
 	cfg := AdcCfg{}
-	err := yaml.Unmarshal([]byte(defcfg), &cfg)
+	err = yaml.Unmarshal(contents, &cfg)
 	if err != nil {
 		panic(err)
 	}
+
 	// Channel numbers
 	channels := make([]uint, len(cfg.Channels))
 	// Channel names
@@ -108,8 +133,8 @@ func main() {
 
 	write_header(os.Stdout, names)
 
-	// Create a 1-hz ticker to drive the sampling goroutine
-	ticker := time.NewTicker(time.Second)
+	// Create a ticker to drive the sampling goroutine
+	ticker := time.NewTicker(*s_interval)
 	go func() {
 		for t := range ticker.C {
 			for i, c := range cfg.Channels {
