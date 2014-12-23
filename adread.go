@@ -7,7 +7,9 @@ import (
 	"gopkg.in/yaml.v2"
 	"io"
 	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
 	"time"
 )
 
@@ -75,35 +77,57 @@ func write_record(w io.Writer, t time.Time, data []float32) error {
 }
 
 func main() {
-	channels := []uint{3, 4, 5, 6}
+	cfg := AdcCfg{}
+	err := yaml.Unmarshal([]byte(defcfg), &cfg)
+	if err != nil {
+		panic(err)
+	}
+	// Channel numbers
+	channels := make([]uint, len(cfg.Channels))
+	// Channel names
+	names := make([]string, len(cfg.Channels))
+	// A/D voltage values
+	x := make([]float32, len(cfg.Channels))
+	// Physical values
+	y := make([]float32, len(cfg.Channels))
+
+	for i, c := range cfg.Channels {
+		names[i] = c.Name
+		channels[i] = c.Cnum
+	}
+
+	// Initialize the A/D interface
 	adc, err := tsadc.NewTs4200Adc(channels, 16, 0)
 	if err != nil {
 		panic(err)
 	}
 
-	cfg := AdcCfg{}
-	err = yaml.Unmarshal([]byte(defcfg), &cfg)
-	if err != nil {
-		panic(err)
-	}
+	// Initialize signal handler
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 
-	vals := make([]float32, len(cfg.Channels))
-	names := make([]string, len(cfg.Channels))
-
-	for i, c := range cfg.Channels {
-		names[i] = c.Name
-	}
-
-	t := time.Now()
-	for i, c := range cfg.Channels {
-		vals[i], err = adc.ReadVolts(c.Cnum)
-		if err != nil {
-			panic(err)
-		}
-	}
 	write_header(os.Stdout, names)
-	err = write_record(os.Stdout, t, vals)
-	if err != nil {
-		panic(err)
-	}
+
+	// Create a 1-hz ticker to drive the sampling goroutine
+	ticker := time.NewTicker(time.Second)
+	go func() {
+		for t := range ticker.C {
+			for i, c := range cfg.Channels {
+				x[i], err = adc.ReadVolts(c.Cnum)
+				y[i] = c.C[0] + c.C[1]*x[i]
+				if err != nil {
+					panic(err)
+				}
+			}
+			err = write_record(os.Stdout, t, y)
+			if err != nil {
+				panic(err)
+			}
+		}
+	}()
+
+	// Wait for signal
+	<-sigs
+	// Stop the sampling goroutine
+	ticker.Stop()
 }
