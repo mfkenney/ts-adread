@@ -131,23 +131,29 @@ func main() {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 
+	// Create a sampling function
+	fsample := func(t time.Time) {
+		for i, c := range cfg.Channels {
+			x[i], err = adc.ReadVolts(c.Cnum)
+			y[i] = c.C[0] + c.C[1]*x[i]
+			if err != nil {
+				panic(err)
+			}
+		}
+		err = write_record(os.Stdout, t, y)
+		if err != nil {
+			panic(err)
+		}
+	}
+
 	write_header(os.Stdout, names)
+	fsample(time.Now())
 
 	// Create a ticker to drive the sampling goroutine
 	ticker := time.NewTicker(*s_interval)
 	go func() {
 		for t := range ticker.C {
-			for i, c := range cfg.Channels {
-				x[i], err = adc.ReadVolts(c.Cnum)
-				y[i] = c.C[0] + c.C[1]*x[i]
-				if err != nil {
-					panic(err)
-				}
-			}
-			err = write_record(os.Stdout, t, y)
-			if err != nil {
-				panic(err)
-			}
+			fsample(t)
 		}
 	}()
 
