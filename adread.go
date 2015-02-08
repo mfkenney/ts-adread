@@ -147,6 +147,8 @@ func main() {
 	}
 
 	write_header(os.Stdout, names)
+	// Delay a bit before the first sample
+	time.Sleep(250 * time.Millisecond)
 	fsample(time.Now())
 
 	// Create a ticker to drive the sampling goroutine
