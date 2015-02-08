@@ -135,7 +135,13 @@ func main() {
 	fsample := func(t time.Time) {
 		for i, c := range cfg.Channels {
 			x[i], err = adc.ReadVolts(c.Cnum)
-			y[i] = c.C[0] + c.C[1]*x[i]
+			// Apply the calibration coefficients
+			//  y = C[0] + x*(C[1] + x*(C[2] + ...))
+			y[i] = 0.
+			for j := len(c.C) - 1; j > 0; j-- {
+				y[i] = x[i] * (c.C[j] + y[i])
+			}
+			y[i] += c.C[0]
 			if err != nil {
 				panic(err)
 			}
