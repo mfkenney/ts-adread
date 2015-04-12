@@ -129,7 +129,8 @@ func main() {
 
 	// Initialize signal handler
 	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
+	signal.Notify(sigs, syscall.SIGINT,
+		syscall.SIGTERM, syscall.SIGHUP, syscall.SIGPIPE)
 
 	// Create a sampling function
 	fsample := func(t time.Time) {
