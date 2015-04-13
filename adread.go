@@ -1,8 +1,8 @@
-// Read one or more A/D channels on a TS-4200/8160 board.
+// Read one or more A/D channels on a TS-4200 or TS-4800 board.
 package main
 
 import (
-	"apl.uw.edu/mikek/tsadc"
+	"bitbucket.org/mfkenney/tsadc"
 	"encoding/csv"
 	"flag"
 	"fmt"
