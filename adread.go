@@ -85,7 +85,10 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Sample A/Ds and write to stdout\n\n")
 		flag.PrintDefaults()
 	}
-	s_interval := flag.Duration("interval", time.Second, "A/D sampling interval")
+	s_interval := flag.Duration("interval", time.Second,
+		"A/D sampling interval")
+	sys_ts4800 := flag.Bool("ts4800", false, "Configure for TS-4800 CPU board")
+
 	flag.Parse()
 	args := flag.Args()
 
@@ -121,8 +124,15 @@ func main() {
 		channels[i] = c.Cnum
 	}
 
+	var adc *tsadc.Adc
+
 	// Initialize the A/D interface
-	adc, err := tsadc.NewTs4200Adc(channels, 16, 0)
+	if *sys_ts4800 {
+		adc, err = tsadc.NewTs4800Adc(channels, 16, 0)
+	} else {
+		adc, err = tsadc.NewTs4200Adc(channels, 16, 0)
+	}
+
 	if err != nil {
 		panic(err)
 	}
