@@ -2,7 +2,7 @@
 package main
 
 import (
-	"bitbucket.org/mfkenney/tsadc"
+	"apl.uw.edu/mikek/tsadc"
 	"encoding/csv"
 	"flag"
 	"fmt"
@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/signal"
+	"runtime"
 	"strconv"
 	"syscall"
 	"time"
@@ -36,6 +37,9 @@ channels:
     units: volts
     c: [0., 1.]
 `
+
+var Version = "dev"
+var BuildDate = "unknown"
 
 type Channel struct {
 	Name  string
@@ -85,11 +89,21 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Sample A/Ds and write to stdout\n\n")
 		flag.PrintDefaults()
 	}
+
 	s_interval := flag.Duration("interval", time.Second,
 		"A/D sampling interval")
 	sys_ts4800 := flag.Bool("ts4800", false, "Configure for TS-4800 CPU board")
+	showvers := flag.Bool("version", false,
+		"Show program version information and exit")
 
 	flag.Parse()
+	if *showvers {
+		fmt.Printf("%s %s\n", os.Args[0], Version)
+		fmt.Printf("  Build date: %s\n", BuildDate)
+		fmt.Printf("  Built with: %s\n", runtime.Version())
+		os.Exit(0)
+	}
+
 	args := flag.Args()
 
 	var contents []byte
