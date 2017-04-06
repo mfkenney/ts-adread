@@ -2,7 +2,7 @@
 package main
 
 import (
-	"apl.uw.edu/mikek/tsadc"
+	"bitbucket.org/uwaploe/go-mmadc"
 	"encoding/csv"
 	"flag"
 	"fmt"
@@ -138,13 +138,13 @@ func main() {
 		channels[i] = c.Cnum
 	}
 
-	var adc *tsadc.Adc
+	var adc *mmadc.Adc
 
 	// Initialize the A/D interface
 	if *sys_ts4800 {
-		adc, err = tsadc.NewTs4800Adc(channels, 16, 0)
+		adc, err = mmadc.NewTs4800Adc(channels, 16, 0)
 	} else {
-		adc, err = tsadc.NewTs4200Adc(channels, 16, 0)
+		adc, err = mmadc.NewTs4200Adc(channels, 16, 0)
 	}
 
 	if err != nil {
